@@ -1,0 +1,46 @@
+---
+title: "170125_price~view"
+author: "Ellie Choi"
+date: "2017년 1월 26일"
+output: html_document
+---
+## 패키지 설치
+```{r}
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(readxl)
+RE_final <- read_excel("C:/Users/Jungyeon/Desktop/encore4/Project/Encore Project/160118_Real Estate_Final.xls")
+```
+
+## 나뉘어져 있는 view 한 열로 tidy data 만들기
+```{r}
+RE_final_tidy <- RE_final%>%select(ID, HK_M, price_saleable, price_gross, sea, street, factory, mountain, landscape, fullsea, bridge)%>%
+  gather(., key='view', value='value', sea, street, factory, mountain, landscape, fullsea, bridge)
+
+# value 값에 0이 있으면 데이터가 중첩되므로 1만 남김 
+RE_final_tidy <- RE_final_tidy %>% filter(value==1)
+
+head(RE_final_tidy)
+```
+
+## view별로 group화 해서 가격 요소 평균 내기 
+```{r}
+view_mean <-
+  RE_final_tidy%>%
+  group_by(view)%>%
+  summarise(mean_wholeprice=mean(HK_M), mean_saleable=mean(price_saleable), mean_gross=mean(price_gross))
+view_mean
+```
+
+## 가격 ~ view 요소 boxplot 시각화
+```{r}
+p_box1 <- ggplot(data=RE_final_tidy, aes(x=view, y=HK_M))
+p_box1 + geom_boxplot()
+
+p_box2 <- ggplot(data=RE_final_tidy, aes(x=view, y=price_gross))
+p_box2 + geom_boxplot()
+
+p_box3 <- ggplot(data=RE_final_tidy, aes(x=view, y=price_saleable))
+p_box3 + geom_boxplot()
+```

@@ -1,0 +1,126 @@
+---
+title: "170118_1_EDA"
+author: "Ellie Choi"
+date: "2017.1.18"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+# 주제 로드맵
+```
+1. 데이터를 통해 부동산 가격과 변수와의 연관성 파악
+2. 외부 데이터 탐색 1. 홍콩 부동산 수요 고객 프로파일링
+3. 외부 데이터 탐색 2. 홍콩 각 지역 주변의 상권 또는 교통을 파악하여 인사이트 도출
+4. 확장 제언: 앞으로의 홍콩 부동산 정책 방향 제시
+
+```
+# EDA
+### 1. 데이터 요구사항 파악: 부동산 매물. 변수와의 연관성 (e.g. Floor와 Price의 연관성)
+### 2. 원천 데이터 현황 파악: 결측치, 이상치 확인 
+### 3. 원천 데이터 변수들의 사용 이유나 근거
+### 4. 변환변수 산정 근거
+
+
+### Import Data
+```{r}
+#install.packages("readxl")
+library(readxl)
+RE <- read_excel("C:/Users/Jungyeon/Desktop/encore4/Project/Encore Project/160118_Real Estate.xls")
+head(RE)
+
+```
+
+## 1. 공백/숫자 제거 
+
+```
+1) Open Refine 통한 공백 제거
+2) R_ substr, str_sub, strsplit
+```
+### 2. 변수명 수정
+```
+- 수정 이유: 불분명/중복 변수명
+- price_ft sq -> price_saleable 면적당가격(전용면적) 
+- Gross area -> price_gross 면적당가격(연면적)) 
+```
+
+### 3. 변수 형태 수정 
+```{r}
+attach(RE)
+
+RE$floor<-as.factor(floor)
+RE$sea<-as.factor(sea)
+RE$street<-as.factor(street)
+RE$factory<-as.factor(factory)
+RE$mountain<-as.factor(mountain)
+RE$landscape<-as.factor(landscape)
+RE$fullsea<-as.factor(fullsea)
+RE$bridge<-as.factor(bridge)
+
+str(RE)
+summary(RE)
+
+```
+
+### 4. Data 변수 형식 수정 (41860 -> 날짜 (13-03-27)
+```{r}
+RE$date<- as.Date(date,origin = "1899-12-30")
+str(RE)
+
+```
+
+### 5. NA 채우기 (Room, Floor)
+```
+- Room: 직접 구글링 >>> 결측값 대조 확인
+- Floor: 직접 구글링 >>> 단독주택, 복층빌라 등 >>> Others
+```
+
+### 6. Block 0$ 의미 검색 확인
+- 직접 구글링 >>> 차이 있음 >>> 그냥 두면 됨
+
+### 7. 전체 Plot 시각화
+```{r}
+#install.packages("dplyr")
+library(dplyr)
+install.packages("ggplot2")
+library(ggplot2)
+install.packages("ggplot")
+library(ggplot)
+install.packages("munsell")
+library(munsell)
+install.packages("RColorBrewer")
+library(RColorBrewer)
+library(GGally)
+
+p <- ggpairs(RE%>%select(-ID,-block,-date, -num_ID))+
+  theme(axis.text.x=
+          element_text(angle=270, hjust=0))+
+  theme_bw()
+ggsave(plot=p, file='plot/고객산포행렬.png',
+       width=80, height=80, unit='cm')
+       
+p
+
+```
+
+### 8. 변환 변수 설정
+```{r}
+install.packages("moments")
+library(moments)
+skewness(RE$saleable_area) 
+
+sqrt3 <- function(x){
+  dir <- ifelse(x>0,1,
+                ifelse(x<0, -1, 0))
+  x <- abs(x)^(1/3)
+  x <- x*dir
+  return(x)
+}
+
+RE_final <- RE_final %>%
+  mutate(saleable_area_balanced = sqrt99(saleable_area))
+
+skewness(RE_final$saleable_area_balanced)
+
+```
+
