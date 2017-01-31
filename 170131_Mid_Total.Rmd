@@ -1,0 +1,102 @@
+---
+title: "170130_mid"
+author: "Ellie Choi"
+date: "2017년 1월 30일"
+output: html_document
+---
+### 데이터 준비 
+```{r}
+library(readxl)
+
+RE_Final2 <- read_excel("C:/Users/Jungyeon/Desktop/encore4/Project/Encore Project/dataset/170129_RE_Final.xlsx")
+head(RE_Final2)
+```
+
+### Floor others 지우기
+- 부동산 추천 서비스 구현 목적상 타겟이 맞지 않는 Others(단독주택,빌라 주거형태) 빼고 분석 
+- 주로 고가격(한화 약 194억원) 주택이라 이상치로 판단하고 빼고 분석 
+```{r}
+library(dplyr)
+RE_Final3 <- RE_Final2 %>% filter(floor!="Others")
+```
+
+### 변수와의 관계 규명
+#### 1) 아파트별 평균가격, 면적, 전용률 
+```{r}
+ID_Analysis <- 
+  RE_Final3%>%
+  group_by(ID)%>%
+  summarise(mean_price_g=mean(HK_M), mean_pricePg=mean(price_gross), mean_pricePs=mean(price_saleable), mean_area_g=mean(gross_area), mean_area_s=mean(saleable_area), mean_area_s=mean(shared_area), mean_eff_r=mean(efficiency_ratio))
+
+ID_Analysis
+
+# 시각화 
+library(ggplot2)
+p_ID_area <- ggplot(data=RE_Final3, aes(x=ID, y=gross_area))
+p_ID_area + geom_boxplot() 
+
+```
+
+#### 2) 전망과 가격의 관계
+```{r}
+view_mean2 <-
+  RE_Final3%>%
+  group_by(view)%>%
+  summarise(mean_price_g=mean(HK_M), mean_pricePs=mean(price_saleable), mean_pricePg=mean(price_gross))
+view_mean2
+
+library(ggplot2)
+library(scales)
+# 전망과 공급가격, 층과의 관계 
+p2_box1 <- ggplot(data=RE_Final3, aes(x=view, y=HK_Price, color=floor))
+p2_box1 + geom_boxplot() + xlab("전망") + ylab("총 가격")
+
+# 전망과 평방피트당 가격(공급면적), 층과의 관계 
+p2_box2 <- ggplot(data=RE_Final3, aes(x=view, y=price_gross, color=floor))
+p2_box2 + geom_boxplot() + xlab("전망") + ylab("평방피트당 가격(공급면적)")
+
+# 전망과 평방피트당 가격(전ㅇ면적), 층과의 관계 
+p2_box3 <- ggplot(data=RE_Final3, aes(x=view, y=price_saleable, color=floor))
+p2_box3 + geom_boxplot() + xlab("전망") + ylab("평방피트당 가격(전용면적)")
+```
+
+#### 3) 각 아파트별 층당 가격 
+```{r}
+ID_Floor_Count <- table(RE_Final3[, c("ID", "floor")])
+
+library(reshape2)
+ID_Floor_Mean <- dcast(RE_Final3, ID~floor, value.var="price_gross", mean)
+
+ID_Floor_Mean
+```
+
+#### 4) 층과 전망의 관계
+```{r}
+Floor_View <- dcast(RE_Final3, floor~view, value.var="ID", length)
+Floor_View
+```
+
+#### 5) 전용률과 가격의 관계
+```{r}
+p_scatter <- ggplot(data=RE_Final3, aes(x=efficiency_ratio, y=price_gross, color=view)) 
+p_scatter + geom_point() 
+
+p_scatter <- ggplot(data=RE_Final3, aes(x=efficiency_ratio, y=price_gross, color=floor)) 
+p_scatter + geom_point() 
+
+```
+
+#### 6) 방개수와 면적의 관계
+```{r}
+p_scatter2 <- ggplot(data=RE_Final3, aes(x=room, y=gross_area, color=view))
+p_scatter2 + geom_point() 
+
+p_scatter2 <- ggplot(data=RE_Final3, aes(x=room, y=gross_area, color=floor))
+p_scatter2 + geom_point() 
+```
+
+## 회귀분석
+```{r}
+model <- lm(price_gross~., data=RE_Final3)
+summary(model)
+```
